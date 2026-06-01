@@ -10,3 +10,5 @@ data/
 
 # VS Code settings
 .vscode/
+
+analyze_corpus.py
