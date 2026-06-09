@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import pickle
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -13,6 +14,7 @@ from utils import ARTIFACTS_DIR, ensure_artifacts_dir, iter_entries
 
 INDEX_META = "bm25_meta.json"
 VECTORS_FILE = "chunk_vectors.npy"
+BM25_FILE = "bm25_index.pkl"
 
 
 def build_index(
@@ -30,6 +32,9 @@ def build_index(
     page_ids = [c.page_id for c in chunks]
 
     bm25 = BM25(tokenized_texts)
+
+    with open(out_dir / BM25_FILE, "wb") as f:
+        pickle.dump(bm25, f)
 
     vectors = embed_texts(raw_texts, batch_size=64)
     np.save(out_dir / VECTORS_FILE, vectors)
@@ -55,10 +60,11 @@ def load_index(
     meta = json.loads((root / INDEX_META).read_text(encoding="utf-8"))
 
     raw_texts = meta["texts"]
-    tokenized_texts = [t.lower().split() for t in raw_texts]
     page_ids = meta["page_ids"]
 
-    bm25 = BM25(tokenized_texts)
+    with open(root / BM25_FILE, "rb") as f:
+        bm25 = pickle.load(f)
+
     vectors = np.load(root / VECTORS_FILE)
 
     return bm25, page_ids, raw_texts, vectors
