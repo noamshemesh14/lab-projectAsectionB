@@ -12,3 +12,33 @@ data/
 .vscode/
 
 analyze_corpus.py
+
+# Artifacts and generated indexes
+artifacts/
+
+# Vector indexes
+*.faiss
+*.npy
+
+# Analysis outputs
+chunk_profile_sweep.json
+chunk_profile_sweep.png
+experiments/eda_plots.png
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
