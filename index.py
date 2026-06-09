@@ -8,10 +8,11 @@ import numpy as np
 
 from chunk import chunk_corpus
 from bm25 import BM25
+from embed import embed_texts
 from utils import ARTIFACTS_DIR, ensure_artifacts_dir, iter_entries
 
-
 INDEX_META = "bm25_meta.json"
+VECTORS_FILE = "chunk_vectors.npy"
 
 
 def build_index(
@@ -19,20 +20,23 @@ def build_index(
     entries_dir: Optional[Path] = None,
     artifacts_dir: Optional[Path] = None,
 ):
-
     out_dir = artifacts_dir or ensure_artifacts_dir()
 
     records = list(iter_entries(entries_dir))
     chunks = chunk_corpus(records)
 
-    texts = [c.text.lower().split() for c in chunks]
+    raw_texts = [c.text for c in chunks]
+    tokenized_texts = [t.lower().split() for t in raw_texts]
     page_ids = [c.page_id for c in chunks]
 
-    bm25 = BM25(texts)
+    bm25 = BM25(tokenized_texts)
+
+    vectors = embed_texts(raw_texts, batch_size=64)
+    np.save(out_dir / VECTORS_FILE, vectors)
 
     meta = {
         "page_ids": page_ids,
-        "texts": [" ".join(t) for t in texts]
+        "texts": raw_texts,
     }
 
     (out_dir / INDEX_META).write_text(
@@ -40,20 +44,21 @@ def build_index(
         encoding="utf-8"
     )
 
-    return bm25, page_ids, chunks
+    return bm25, page_ids, raw_texts, vectors
 
 
 def load_index(
     artifacts_dir: Optional[Path] = None,
-) -> Tuple[BM25, List[int], List[str]]:
-
+) -> Tuple[BM25, List[int], List[str], np.ndarray]:
     root = artifacts_dir or ARTIFACTS_DIR
 
     meta = json.loads((root / INDEX_META).read_text(encoding="utf-8"))
 
-    texts = [t.split() for t in meta["texts"]]
+    raw_texts = meta["texts"]
+    tokenized_texts = [t.lower().split() for t in raw_texts]
     page_ids = meta["page_ids"]
 
-    bm25 = BM25(texts)
+    bm25 = BM25(tokenized_texts)
+    vectors = np.load(root / VECTORS_FILE)
 
-    return bm25, page_ids, meta["texts"]
+    return bm25, page_ids, raw_texts, vectors
