@@ -13,10 +13,13 @@ from utils import K_EVAL
 def _minmax(x: np.ndarray) -> np.ndarray:
     if x.size == 0:
         return x
+
     mn = float(x.min())
     mx = float(x.max())
+
     if mx - mn < 1e-9:
         return np.zeros_like(x)
+
     return (x - mn) / (mx - mn)
 
 
@@ -34,14 +37,26 @@ def search_batch(
     results = []
 
     for q, q_vec in zip(queries, query_vectors):
+
         tokens = q.lower().split()
 
-        candidate_idx, bm25_scores_all = bm25.search(tokens, top_k=200)
+        # BM25 returns:
+        # candidate_idx = chunk ids
+        # bm25_scores_all = scores for those chunk ids
+        candidate_idx, bm25_scores_all = bm25.search(
+            tokens,
+            top_k=200,
+        )
+
+        if len(candidate_idx) == 0:
+            results.append([])
+            continue
 
         candidate_idx = np.array(candidate_idx, dtype=np.int64)
 
+        # BM25 scores already correspond 1-to-1 with candidate_idx
         bm25_scores = np.array(
-            [bm25_scores_all[i] for i in candidate_idx],
+            bm25_scores_all,
             dtype=np.float32,
         )
 
@@ -50,8 +65,13 @@ def search_batch(
         bm25_norm = _minmax(bm25_scores)
         emb_norm = _minmax(emb_scores)
 
-        final_scores = 0.45 * bm25_norm + 0.55 * emb_norm
+        final_scores = (
+            0.45 * bm25_norm +
+            0.55 * emb_norm
+        )
 
+        # Original behavior:
+        # keep only the highest-scoring chunk per page
         order = np.argsort(-final_scores)
 
         seen = set()
