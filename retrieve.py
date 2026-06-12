@@ -10,18 +10,17 @@ from index import load_index
 from utils import K_EVAL
 
 
-def _minmax(x: np.ndarray) -> np.ndarray:
+def _zscore(x: np.ndarray) -> np.ndarray:
     if x.size == 0:
         return x
 
-    mn = float(x.min())
-    mx = float(x.max())
+    mean = float(x.mean())
+    std = float(x.std())
 
-    if mx - mn < 1e-9:
+    if std < 1e-9:
         return np.zeros_like(x)
 
-    return (x - mn) / (mx - mn)
-
+    return (x - mean) / std
 
 def search_batch(
     queries: List[str],
@@ -45,7 +44,7 @@ def search_batch(
         # bm25_scores_all = scores for those chunk ids
         candidate_idx, bm25_scores_all = bm25.search(
             tokens,
-            top_k=200,
+            top_k=500,
         )
 
         if len(candidate_idx) == 0:
@@ -62,12 +61,12 @@ def search_batch(
 
         emb_scores = vectors[candidate_idx] @ q_vec
 
-        bm25_norm = _minmax(bm25_scores)
-        emb_norm = _minmax(emb_scores)
+        bm25_norm = _zscore(bm25_scores)
+        emb_norm = _zscore(emb_scores)
 
         final_scores = (
-            0.45 * bm25_norm +
-            0.55 * emb_norm
+            0.30 * bm25_norm +
+            0.70 * emb_norm
         )
 
         # Original behavior:
