@@ -1,4 +1,5 @@
 """Competition-level Query-time retrieval with Cross Encoder reranking."""
+"""Competition-level Query-time retrieval with Cross Encoder reranking."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -9,6 +10,7 @@ import numpy as np
 from embed import embed_queries
 from index import load_index
 from utils import K_EVAL, normalize_page_id, rrf, cross_score
+from utils import K_EVAL, normalize_page_id, rrf, cross_score
 
 def search_batch(
     queries: List[str],
@@ -17,6 +19,7 @@ def search_batch(
     artifacts_dir: Optional[Path] = None,
 ) -> List[List[int]]:
 
+    bm25, page_ids, raw_texts, corpus_vectors = load_index(artifacts_dir)
     bm25, page_ids, raw_texts, corpus_vectors = load_index(artifacts_dir)
 
     query_vectors = embed_queries(queries)
@@ -40,6 +43,7 @@ def search_batch(
 
     results = []
 
+    for i, q in enumerate(queries):
     for i, q in enumerate(queries):
 
         tokens = q.lower().split()
@@ -95,8 +99,10 @@ def search_batch(
 
         seen = set()
         out = []
+        out = []
 
         for pos in order:
+            pid = normalize_page_id(page_ids[int(rerank_idx[pos])])
             pid = normalize_page_id(page_ids[int(rerank_idx[pos])])
 
             if pid in seen:
@@ -104,10 +110,13 @@ def search_batch(
 
             seen.add(pid)
             out.append(pid)
+            out.append(pid)
 
+            if len(out) >= top_k:
             if len(out) >= top_k:
                 break
 
+        results.append(out)
         results.append(out)
 
     return results
