@@ -1,6 +1,10 @@
 """Shared paths and helpers for Section B."""
 from __future__ import annotations
 
+from sentence_transformers import CrossEncoder
+
+import numpy as np
+
 import json
 from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, List
@@ -59,3 +63,36 @@ def entry_text(record: Dict[str, Any]) -> str:
 def ensure_artifacts_dir() -> Path:
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
     return ARTIFACTS_DIR
+
+
+def _zscore(x: np.ndarray) -> np.ndarray:
+    if x.size == 0:
+        return x
+
+    std = float(np.std(x))
+    if std < 1e-9:
+        return np.zeros_like(x)
+
+    return (x - np.mean(x)) / std
+
+def rrf(rank: np.ndarray, k: float = 60.0) -> np.ndarray:
+    return 1.0 / (k + rank)
+
+
+_ce_model = None
+
+def get_ce():
+    global _ce_model
+    if _ce_model is None:
+        _ce_model = CrossEncoder(
+            "cross-encoder/ms-marco-MiniLM-L6-v2",
+            max_length=512
+        )
+    return _ce_model
+
+
+def cross_score(query: str, docs: List[str]) -> np.ndarray:
+    model = get_ce()
+    pairs = [(query, d) for d in docs]
+    return model.predict(pairs, batch_size=32, show_progress_bar=False)
+
