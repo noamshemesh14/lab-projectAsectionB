@@ -65,7 +65,7 @@ def search_batch(
             bm25_val = bm25_map.get(idx, 0.0)
             dense_val = rrf(np.array([dense_rank[j]]))[0]
 
-            fusion_scores[j] = 0.3 * bm25_val + 0.7 * dense_val
+            fusion_scores[j] = 0.75 * bm25_val + 0.25 * dense_val
             
         # ---------------- top candidates ----------------
         top_local = np.argpartition(-fusion_scores, RERANK_POOL)[:RERANK_POOL]
