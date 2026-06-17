@@ -1,9 +1,14 @@
-## link to the presentation video: https://drive.google.com/file/d/18nlgSR6UxZ3_Wjtm5I0gYi3ueoZc5QTd/view?usp=sharing
-
-
 # Section B — Retrieval Pipeline
 
 A high-performance information retrieval system that combines **BM25 sparse retrieval**, **dense embeddings**, and **cross-encoder reranking** to rank Wikipedia documents against search queries.
+
+---
+
+## link to the presentation video: 
+
+https://drive.google.com/file/d/18nlgSR6UxZ3_Wjtm5I0gYi3ueoZc5QTd/view?usp=sharing
+
+---
 
 ## 🎯 Project Overview
 
@@ -51,133 +56,28 @@ lab-projectAsectionB/
 
 ---
 
-## 📋 File Descriptions
-
-### Core Modules
-
-#### **main.py**
-- **Purpose**: Autograder interface
-- **Key Function**: `run(queries: List[str]) -> List[List[int]]`
-  - Takes a batch of queries (e.g., 50 at grading time)
-  - Returns ranked page IDs per query (top-10 scored)
-- **Also**: `build_offline_index()` – creates `artifacts/` locally (not timed)
-
-#### **retrieve.py** ⭐ Main Retrieval Logic
-- **Key Function**: `search_batch(queries)` – orchestrates the entire ranking pipeline
-- **Process Flow**:
-  1. **Load indexes** from `artifacts/`
-  2. **Embed queries** using sentence-transformers
-  3. **BM25 candidate pool** (top 1000)
-  4. **Dense candidate pool** (top 1000 by cosine similarity)
-  5. **RRF fusion** (combine BM25 + dense ranks with 0.3/0.7 weighting)
-  6. **De-duplication** by page_id (keep highest score per page)
-  7. **Cross-encoder reranking** (top 150 candidates)
-  8. **Final ranking** by cross-encoder score (top 10 unique pages)
-
-#### **index.py**
-- **Key Functions**:
-  - `build_index()` – offline index creation
-    - Chunks corpus
-    - Trains BM25
-    - Generates dense embeddings
-    - Saves `artifacts/`
-  - `load_index()` – loads all artifacts at inference time
-- **Artifacts**:
-  - `bm25_index.pkl` – pickled BM25 object
-  - `chunk_vectors.npy` – float32 embeddings (L2-normalized)
-  - `bm25_meta.json` – page IDs and text for lookup
-
-#### **chunk.py**
-- **Key Function**: `chunk_entry(record)` – breaks Wikipedia pages into overlapping chunks
-- **Parameters**:
-  - `chunk_size=120` words per chunk
-  - `overlap=30` words between chunks
-- **Feature**: Title boosting (title repeated 3x for higher BM25 scores)
-- **Output**: List of `Chunk` objects (page_id, chunk_id, text)
-
-#### **embed.py**
-- **Model**: `sentence-transformers/all-MiniLM-L6-v2`
-- **Key Function**: `embed_texts(texts)` → L2-normalized float32 embeddings (384-dim)
-- **Features**:
-  - Auto-detects GPU (CUDA) / CPU
-  - Batch processing (64-sized batches)
-  - Lazy loading (loads model once globally)
-
-#### **bm25.py** ⚡ Optimized BM25
-- **Algorithm**: Standard BM25 (Okapi variant)
-- **Parameters**: `k1=1.5`, `b=0.75`
-- **Optimizations**:
-  - Pre-computed document penalties (saves repeated calculations)
-  - NumPy vectorized scoring (fast bulk operations)
-  - Fast top-K extraction (partition-based, avoids full sort)
-- **Key Method**: `search(query_tokens, top_k)` → ranked doc IDs + scores
-
-#### **utils.py**
-- **Paths**: `DATA_DIR`, `ENTRIES_DIR`, `ARTIFACTS_DIR`, `PUBLIC_QUERIES_PATH`
-- **Helpers**:
-  - `normalize_page_id()` – coerce JSON page IDs to int
-  - `iter_entries()` – load corpus from JSON files
-  - `ensure_artifacts_dir()` – create `artifacts/`
-- **Fusion & Scoring**:
-  - `rrf(rank)` – Reciprocal Rank Fusion: `1 / (60 + rank)`
-  - `cross_score(query, docs)` – use cross-encoder model on pairs
-  - `get_ce()` – lazy-load `cross-encoder/ms-marco-MiniLM-L6-v2`
-
-#### **eval.py** (Read-Only)
-- **Metric**: NDCG@10 (Normalized Discounted Cumulative Gain)
-- **Key Functions**:
-  - `ndcg_at_k()` – compute single query NDCG
-  - `mean_ndcg_at_k()` – average across all queries
-  - `evaluate_run()` – run model and return scores
-
----
-
 ## 🔄 Work Process / Pipeline
 
-### Phase 1: Offline (Local, Not Timed)
-```
-python main.py
-  ↓
-build_offline_index()
-  ↓
-1. Corpus Loading: iter_entries() loads all JSON files from data/Wikipedia Entries/
-2. Chunking: chunk_corpus() breaks each page into 120-word chunks (overlap=30)
-3. BM25 Training: BM25() builds inverted index + IDF scores
-4. Dense Embedding: embed_texts() generates 384-dim vectors for all chunks
-5. Artifact Export: Save to artifacts/
-   - bm25_index.pkl (BM25 object)
-   - chunk_vectors.npy (embeddings)
-   - bm25_meta.json (page IDs, texts)
-```
+#### **Phase 1: Offline Index Building**
+- **Step 1: Corpus Loading** – Loads raw JSON files from the data directory.
+- **Step 2: Text Chunking** – Breaks pages into 120-word segments (30-word overlap), repeating the title 3 times at the heading of each chunk.
+- **Step 3: Sparse Indexing** – Builds the BM25 inverted index and calculates IDF scores.
+- **Step 4: Dense Embedding** – Computes 384-dimensional embeddings using `all-MiniLM-L6-v2` for all chunks.
+- **Step 5: Artifact Export** – Serializes and saves the BM25 object, embeddings array, and metadata to local storage.
 
-### Phase 2: Query-Time Retrieval (Timed at Grading)
-```
-run(queries: List[str])
-  ↓
-search_batch(queries)
-  ↓
-1. Load artifacts from disk (index.py → load_index())
-2. Embed queries using sentence-transformers (embed.py)
-3. For each query:
-   a) Tokenize query (lowercase, split)
-   b) BM25 search → top 1000 candidate chunks
-   c) Dense search → top 1000 by cosine similarity
-   d) Rank fusion (RRF) → combine BM25 + dense ranks
-   e) De-duplicate → keep top chunk per page
-   f) Cross-encoder rerank → top 150
-   g) Final rank → top 10 unique page IDs
-4. Return List[List[int]] – one ranked list per query
-```
+#### **Phase 2: Query-Time Retrieval**
+- **Step 1: Initialization** – Loads indexes and metadata into memory.
+- **Step 2: Query Embedding** – Converts incoming queries into L2-normalized dense vectors.
+- **Step 3: Dense Scoring** – Computes cosine similarity (dot product) between queries and all corpus vectors.
+- **Step 4: Initial Pooling** – Fetches the top 1000 BM25 candidates and top 1000 Dense candidates.
+- **Step 5: Dense-Driven Fusion (RRF)** – Iterates only through the 1000 dense candidates to calculate rank fusion (0.7 Dense + 0.3 BM25). BM25-only candidates are discarded.
+- **Step 6: Rerank Pooling** – Selects the top 150 chunks based on the calculated fusion scores.
+- **Step 7: Pre-Rerank De-duplication** – Filters the top 150 chunks to retain only the single highest-scoring chunk per unique page ID, efficiently preventing redundant cross-encoder calculations on the same page.
+- **Step 8: Cross-Encoder Scoring** – Passes the deduplicated chunks through a cross-encoder for final pair-wise similarity scoring.
+- **Step 9: Final Output** – Sorts by cross-encoder score, applies a secondary safety check to ensure absolutely no duplicate pages remain, and returns the top 10 unique page IDs.
 
-### Phase 3: Evaluation
-```
-python scripts/eval_public.py
-  ↓
-- Load public queries + ground truth
-- Call run(queries)
-- Compute mean NDCG@10
-- Display results
-```
+#### **Phase 3: Evaluation & Scoring**
+- **Metric Calculation** – Computes mean NDCG@10 across all queries.
 
 ---
 
@@ -203,41 +103,13 @@ This generates `artifacts/` with:
 - `chunk_vectors.npy`
 - `bm25_meta.json`
 
-**Expected time**: ~5-10 min (depends on corpus size & GPU availability)
+**Expected time**: ~30 mins using GPU for embedding
 
 ### 3. Test Locally
 ```bash
 python scripts/eval_public.py
 ```
 Evaluates on public query set and prints **mean NDCG@10**.
-
----
-
-## 🧠 Key Design Decisions
-
-### 1. **Hybrid Retrieval (BM25 + Dense)**
-- **BM25**: Exact keyword matching, fast, interpretable
-- **Dense embeddings**: Semantic similarity, catches synonyms & paraphrases
-- **RRF fusion**: Combines both without manual weighting tweaks
-
-### 2. **Title Boosting**
-- Title repeated 3× in chunks → higher BM25 scores for title matches
-- Improves recall on page-level relevance
-
-### 3. **Cross-Encoder Reranking**
-- BM25 + dense give ~150 candidates
-- Cross-encoder (`ms-marco-MiniLM-L6-v2`) scores pairs (query, doc) **jointly**
-- Better accuracy than separate embedding scores, small computational cost
-
-### 4. **Page-Level Deduplication**
-- Chunks belong to multiple pages
-- Top chunk per page is kept, others discarded
-- Avoids ranking the same page multiple times
-
-### 5. **Vectorized BM25**
-- NumPy arrays for document penalties, term frequencies
-- Batch scoring without Python loops
-- ~10x faster than naive implementation
 
 ---
 
