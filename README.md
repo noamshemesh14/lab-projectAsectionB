@@ -121,9 +121,8 @@ Evaluates on public query set and prints **mean NDCG@10**.
 | `embed.py` | `batch_size` | 64 | Embedding batch size |
 | `bm25.py` | `k1` | 1.5 | BM25 saturation parameter |
 | `bm25.py` | `b` | 0.75 | BM25 length normalization |
-| `retrieve.py` | `BM25_POOL` | 1000 | BM25 candidate pool |
 | `retrieve.py` | `DENSE_POOL` | 1000 | Dense candidate pool |
 | `retrieve.py` | `RERANK_POOL` | 150 | Cross-encoder candidates |
-| `retrieve.py` | RRF weights | 0.3 / 0.7 | BM25 / Dense in fusion |
+| `retrieve.py` | RRF weights | 0.75 / 0.25 | BM25 / Dense in fusion |
 | `utils.py` | `K_EVAL` | 10 | Final ranking depth (scored at grading) |
 
