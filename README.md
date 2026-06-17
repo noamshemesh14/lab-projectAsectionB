@@ -68,16 +68,15 @@ lab-projectAsectionB/
 #### **Phase 2: Query-Time Retrieval**
 - **Step 1: Initialization** – Loads indexes and metadata into memory.
 - **Step 2: Query Embedding** – Converts incoming queries into L2-normalized dense vectors.
-- **Step 3: Dense Scoring** – Computes cosine similarity (dot product) between queries and all corpus vectors.
-- **Step 4: Initial Pooling** – Fetches the top 1000 BM25 candidates and top 1000 Dense candidates.
-- **Step 5: Dense-Driven Fusion (RRF)** – Iterates only through the 1000 dense candidates to calculate rank fusion (0.7 Dense + 0.3 BM25). BM25-only candidates are discarded.
-- **Step 6: Rerank Pooling** – Selects the top 150 chunks based on the calculated fusion scores.
-- **Step 7: Pre-Rerank De-duplication** – Filters the top 150 chunks to retain only the single highest-scoring chunk per unique page ID, efficiently preventing redundant cross-encoder calculations on the same page.
-- **Step 8: Cross-Encoder Scoring** – Passes the deduplicated chunks through a cross-encoder for final pair-wise similarity scoring.
-- **Step 9: Final Output** – Sorts by cross-encoder score, applies a secondary safety check to ensure absolutely no duplicate pages remain, and returns the top 10 unique page IDs.
+- **Step 3: Dense Pooling** – Fetches the top 1000 Dense candidates.
+- **Step 4: Dense-Driven Fusion (RRF)** – Iterates only through the 1000 dense candidates to calculate rank fusion (0.25 Dense + 0.75 BM25). 
+- **Step 5: Rerank Pooling** – Selects the top 150 chunks based on the calculated fusion scores.
+- **Step 6: Pre-Rerank De-duplication** – Filters the top 150 chunks to retain only the single highest-scoring chunk per unique page ID, efficiently preventing redundant cross-encoder calculations on the same page.
+- **Step 7: Cross-Encoder Scoring** – Passes the deduplicated chunks through a cross-encoder for final pair-wise similarity scoring.
+- **Step 8: Final Output** – Sorts by cross-encoder score, applies a secondary safety check to ensure absolutely no duplicate pages remain, and returns the top 10 unique page IDs.
 
 #### **Phase 3: Evaluation & Scoring**
-- **Metric Calculation** – Computes mean NDCG@10 across all queries.
+- **Metric Calculation** – Computes mean NDCG@10 across all test queries.
 
 ---
 
