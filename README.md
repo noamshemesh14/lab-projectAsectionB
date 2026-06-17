@@ -1,4 +1,4 @@
-###link to tje presentation video: https://drive.google.com/file/d/18nlgSR6UxZ3_Wjtm5I0gYi3ueoZc5QTd/view?usp=sharing
+## link to the presentation video: https://drive.google.com/file/d/18nlgSR6UxZ3_Wjtm5I0gYi3ueoZc5QTd/view?usp=sharing
 
 
 # Section B — Retrieval Pipeline
