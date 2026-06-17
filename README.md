@@ -1,3 +1,6 @@
+###link to tje presentation video: https://drive.google.com/file/d/18nlgSR6UxZ3_Wjtm5I0gYi3ueoZc5QTd/view?usp=sharing
+
+
 # Section B — Retrieval Pipeline
 
 A high-performance information retrieval system that combines **BM25 sparse retrieval**, **dense embeddings**, and **cross-encoder reranking** to rank Wikipedia documents against search queries.
