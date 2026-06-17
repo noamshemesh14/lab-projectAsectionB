@@ -46,8 +46,7 @@ lab-projectAsectionB/
 │   └── bm25_meta.json         # Metadata (page IDs, texts)
 │
 ├── data/
-│   ├── Wikipedia Entries/     # Corpus JSON files (one per page)
-│   └── public_queries.json    # Test query set
+│   └── public_queries.json    # Self Test query set
 │
 └── scripts/
     ├── build_index.py         # Offline index building

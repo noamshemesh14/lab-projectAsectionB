@@ -9,7 +9,7 @@ __pycache__/
 *.pyd
 
 # Data
-data/
+data/Wikipedia Entries/
 
 # IDE
 .vscode/
